@@ -86,13 +86,13 @@ See LICENSE for MIT license details
           $('a.gallery_arrow', g)
             .filter('.arrow_left').attr({href: '#' + settings.gallery + '_' + left_link})
             .end().filter('.arrow_right').attr({href: '#' + settings.gallery + '_' + right_link});
-          $(g).bind('swipe', function(evt, data){ // Swipe to move through gallery
+          g.bind('swipe', function(evt, data){ // Swipe to move through gallery
             $('a.arrow_' + data.direction, g).click();
           });
-          /*$(g).live('swipe', function(evt, data){
+          /*g.live('swipe', function(evt, data){
             $('a.arrow_' + data.direction, g).click();
-          });          
-          $(g).swipe(function(evt, data){
+          });*/          
+          /*g.swipe(function(evt, data){
             $('a.arrow_' + data.direction, g).click();          
           });*/       
         }
