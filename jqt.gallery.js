@@ -19,7 +19,10 @@ See LICENSE for MIT license details
   if($.jQTouch) {
     $.jQTouch.addExtension(function gallery(jQTouch){  
       var settings = {}, load = 0, ww = $(window).width(), wh = window.innerHeight;
-      jQT.addAnimation({name:'flipRight', selector:'.flipRight'});
+      jQT.addAnimation({
+        name: 'flipRight',
+        selector: '.flipRight'
+      });
 
       function gallery_init(options) {
         var defaults = {
@@ -32,42 +35,28 @@ See LICENSE for MIT license details
           
         for(var i = 0; i < settings.media.length; i++) buildPage(i);
 
-         // Toolbar automatically toggles off
         $('.gallery')
           .bind('pageAnimationStart', function(e, info){
             if(info.direction == 'in') {
-              $(this).data('autoToggle', true);
-              $('.toolbar', this).removeClass('hidden').show();
-              var $this = $(this); 
-              setTimeout(function(){
-                toggleToolbars($this, 'auto');
-              }, settings.toggleToolbars);
+              toolbarsOn($(this));
               preloadNextMediaItem();
             }
-          })
-          
-           // Orientation change since initialization
+          })          
           .bind('pageAnimationEnd', function(e, info){
-            if(info.direction == 'in') {
-              windowPageAdjustPage($(this));
-            }
+            if(info.direction == 'in') windowChangeAdjustPage();
           })
-          
-           // Manual toolbar toggling
           .bind('click', function(){
-            $(this).data('autoToggle', false);
-            toggleToolbars($(this), 'user');
-          });          
+            toolbarsToggle($(this));
+          });      
         
-        // Orientation change
-        $('body').bind('turn', function(e, data){
-          if($('.gallery.current').length) windowPageAdjustPage($('.gallery.current'));
+        $(window).bind('resize', function(){
+          if($('.gallery.current').length) windowChangeAdjustPage();
         });
 
         // Opaque text on trans toolbars, append page num to gallery link, count media
-        var toolbar_bg = $('.gallery .toolbar').css('background-image');
+        var toolbarBg = $('.gallery .toolbar').css('background-image');
         $('.gallery .toolbar').css({background: 'none'});
-        $('.gallery .toolbar .transparent').css({backgroundImage: toolbar_bg});
+        $('.gallery .toolbar .transparent').css({backgroundImage: toolbarBg});
         $('a[href="#' + settings.gallery + '"]')
           .attr('href', '#' + settings.gallery + '_1')
           .parent()
@@ -79,31 +68,28 @@ See LICENSE for MIT license details
         var id = settings.gallery + '_' + eval(i + 1);
         if($('#' + id).length) return; // Page exists
         
+        // Markup
         var caption = (settings.media[i].caption.length) ? '<div class="caption">' + settings.media[i].caption + '<div class="caption_transparent"></div></div>' : '';
         $('body').append('<div id="' + id + '" class="gallery" style="height:' + wh + 'px;"><div class="toolbar"><h1>' + settings.title + '</h1><a class="cancel slide" href="#' + settings.done + '">Done</a>' + caption + '<div class="transparent"></div></div><div class="toolbar gallery_toolbar"><h1>' + eval(i + 1) + ' of ' + settings.media.length + '</h1><a href="#" class="gallery_arrow arrow_left flip"></a><a href="#" class="gallery_arrow arrow_right flipRight"></a><div class="transparent"></div></div><div class="play"></div></div>');
         
+        // Navigation
         if(settings.media.length > 1) {
           var g = $('#' + id);
-          
-          // Navigate by arrows
-          var left_link = (i == 0) ? settings.media.length : i;
-          var right_link = (i == settings.media.length - 1) ? 1 : i + 2;
+          var leftLink = (i == 0) ? settings.media.length : i;
+          var rightLink = (i == settings.media.length - 1) ? 1 : i + 2;
           $('a.gallery_arrow', g)
             .filter('.arrow_left')
-            .attr({href: '#' + settings.gallery + '_' + left_link})
+            .attr({href: '#' + settings.gallery + '_' + leftLink})
             .end()
             .filter('.arrow_right')
-            .attr({href: '#' + settings.gallery + '_' + right_link});
-          
-          // Navigate by swipe
+            .attr({href: '#' + settings.gallery + '_' + rightLink});
           g.bind('swipe', function(evt, data){
             $('a.arrow_' + data.direction, $(this)).click();
-          });      
-          
-          positionArrows(g);
+          });                
         }
 
         if(i < settings.preload) addMediaToPage(i, g);
+        positionArrows(g);
       }
 
       function addMediaToPage(i, g) {
@@ -113,6 +99,9 @@ See LICENSE for MIT license details
           media
             .addClass('youtube')
             .attr({src: 'http://img.youtube.com/vi/' + settings.media[i].youtube + '/0.jpg'});
+            /*.bind('click', function(){
+              toolbarsToggle(g);
+            });*/
           $('.play', g).bind('click', function(){
             document.location.href = 'http://www.youtube.com/watch?v=' + settings.media[i].youtube;
           });
@@ -122,6 +111,7 @@ See LICENSE for MIT license details
           mediaLearnSize($(this));
           fillPageWithMedia($(this));
           $('.toolbar:first-child', g).after($(this));
+          if($(this).hasClass('youtube')) positionArrows(g);
           if(i >= settings.preload) preloadNextMediaItem();        
         });
       }
@@ -145,7 +135,7 @@ See LICENSE for MIT license details
       }      
 
       function fillPageWithMedia(media) {
-        var mw = media.data('size').mw
+        var mw = media.data('size').mw;
         var mh = media.data('size').mh;
         if(mw > mh) { 
           mh = (mw < ww) ?
@@ -167,23 +157,50 @@ See LICENSE for MIT license details
             left: ww / 2 - mw / 2 + 'px',
             top: wh / 2 - mh / 2 + 'px'
           });        
-      }
-      
-      function toggleToolbars(g, src) {
-        if((src == 'user' || (src == 'auto' && g.data('autoToggle') == true)) && settings.toggleToolbars) {
-          if(!$('.toolbar', g).hasClass('hidden')) {
-            $('.toolbar', g).addClass('hidden').fadeOut('fast');
-          } else {
-            $('.toolbar', g).removeClass('hidden').fadeIn('fast');
-          }
+      }     
+
+      function toolbarsOn(g) {
+        if(settings.toggleToolbars) {
+          $('.toolbar', g)
+            .data('auto', true)
+            .removeClass('hidden')
+            .show(function(){
+              setTimeout(function(){ // Auto toggle off...
+                if($('.toolbar', g).data('auto')) { // Unless user has already toggled
+                  $('.toolbar', g)
+                    .addClass('hidden')
+                    .fadeOut('fast');
+                }
+              }, settings.toggleToolbars);
+          });
         }
       }      
+      
+      function toolbarsToggle(g) {
+        if(settings.toggleToolbars) {
+          $('.toolbar', g).data('auto', false); // User toggle cancels pending auto toggle
+          if($('.toolbar', g).hasClass('hidden')) {
+            $('.toolbar', g)
+              .removeClass('hidden')
+              .fadeIn('fast');
+          } else {
+            $('.toolbar', g)
+              .addClass('hidden')
+              .fadeOut('fast');
+          }
+        }
+      }
 
-      function windowPageAdjustPage(g) {
-        ww = $(window).width(), wh = window.innerHeight;
-        g.css({height:wh + 'px'});
-        fillPageWithMedia($('.media', g));
-        positionArrows(g);      
+      function windowChangeAdjustPage() {
+        if(ww != $(window).width() || wh != window.innerHeight) {
+          ww = $(window).width()
+          wh = window.innerHeight;
+          $('.gallery').each(function(){
+            $(this).css({height: wh + 'px'});
+            fillPageWithMedia($('.media', $(this)));
+            positionArrows($(this));
+          });                       
+        }
       }
 
       function positionArrows(g) {
@@ -196,8 +213,8 @@ See LICENSE for MIT license details
         
         $('a.gallery_arrow', g)
           .css({
-            bottom:   y,
-            display:  'block'
+            bottom: y,
+            display: 'block'
           })
           .filter('.arrow_left')
           .css({right: x})
@@ -205,8 +222,8 @@ See LICENSE for MIT license details
           .filter('.arrow_right')
           .css({left: x});
         
-        if($('.youtube', g).length) {
-          var ps = sizeFromCSS($('.play', g));
+        if($('.media', g).length) {
+          var ps = sizeFromCSS($('.play'));
           $('.play', g).css({
             left: ww / 2 - ps[0] / 2 + 'px',
             top: wh / 2 - ps[1] / 2 + 'px',
