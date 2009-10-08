@@ -41,13 +41,10 @@ See LICENSE for MIT license details
               toolbarsOn($(this));
               preloadNextMediaItem();
             }
-          })          
-          .bind('pageAnimationEnd', function(e, info){
-            if(info.direction == 'in') windowChangeAdjustPage();
           })
-          .bind('click', function(){
-            toolbarsToggle($(this));
-          });      
+          .bind('swipe', function(evt, data){
+            $('a.arrow_' + data.direction, $(this)).click();
+          });
         
         $(window).bind('resize', function(){
           if($('.gallery.current').length) windowChangeAdjustPage();
@@ -82,10 +79,7 @@ See LICENSE for MIT license details
             .attr({href: '#' + settings.gallery + '_' + leftLink})
             .end()
             .filter('.arrow_right')
-            .attr({href: '#' + settings.gallery + '_' + rightLink});
-          g.bind('swipe', function(evt, data){
-            $('a.arrow_' + data.direction, $(this)).click();
-          });                
+            .attr({href: '#' + settings.gallery + '_' + rightLink});              
         }
 
         if(i < settings.preload) addMediaToPage(i, g);
@@ -98,10 +92,7 @@ See LICENSE for MIT license details
         if(settings.media[i].youtube) {
           media
             .addClass('youtube')
-            .attr({src: 'http://img.youtube.com/vi/' + settings.media[i].youtube + '/0.jpg'});
-            /*.bind('click', function(){
-              toolbarsToggle(g);
-            });*/
+            .attr({src: 'http://img.youtube.com/vi/' + settings.media[i].youtube + '/0.jpg'})
           $('.play', g).bind('click', function(){
             document.location.href = 'http://www.youtube.com/watch?v=' + settings.media[i].youtube;
           });
@@ -111,7 +102,10 @@ See LICENSE for MIT license details
           mediaLearnSize($(this));
           fillPageWithMedia($(this));
           $('.toolbar:first-child', g).after($(this));
-          if($(this).hasClass('youtube')) positionArrows(g);
+          if($(this).hasClass('youtube')) positionArrows(g); // Necessary for play arrow to show in Safari (Mobile WebKit not affected)
+          $(this).bind('click', function(){ // .gallery bind would be better, but too easy for arrow tap to trigger instead of desired navigation (Safari not affected)
+            toolbarsToggle(g);
+          });
           if(i >= settings.preload) preloadNextMediaItem();        
         });
       }
@@ -222,7 +216,7 @@ See LICENSE for MIT license details
           .filter('.arrow_right')
           .css({left: x});
         
-        if($('.media', g).length) {
+        if($('.youtube', g).length) {
           var ps = sizeFromCSS($('.play'));
           $('.play', g).css({
             left: ww / 2 - ps[0] / 2 + 'px',
