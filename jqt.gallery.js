@@ -66,7 +66,7 @@ See LICENSE for MIT license details
         if($('#' + id).length) return; // Page exists
         
         // Markup
-        var caption = (settings.media[i].caption.length) ? '<div class="caption">' + settings.media[i].caption + '<div class="caption_transparent"></div></div>' : '';
+        var caption = (settings.media[i].caption) ? '<div class="caption">' + settings.media[i].caption + '<div class="caption_transparent"></div></div>' : '';
         $('body').append('<div id="' + id + '" class="gallery" style="height:' + wh + 'px;"><div class="toolbar"><h1>' + settings.title + '</h1><a class="cancel slide" href="#' + settings.done + '">Done</a>' + caption + '<div class="transparent"></div></div><div class="toolbar gallery_toolbar"><h1>' + eval(i + 1) + ' of ' + settings.media.length + '</h1><a href="#" class="gallery_arrow arrow_left flip"></a><a href="#" class="gallery_arrow arrow_right flipRight"></a><div class="transparent"></div></div><div class="play"></div></div>');
         
         // Navigation
